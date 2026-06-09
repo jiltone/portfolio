@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 import { EffectComposer, Bloom, ChromaticAberration } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import ParticleField from './ParticleField'
-import { NeuralCore, DataMatrix, HelixDNA, ProjectOrb, WormholeOrb } from './FloatingModel'
+import { HelixDNA, ProjectOrb, WormholeOrb } from './FloatingModel'
 
 export default function Scene3D({ scrollProgress }) {
   return (
@@ -21,8 +21,6 @@ export default function Scene3D({ scrollProgress }) {
 
         <Suspense fallback={null}>
           <ParticleField count={2200} />
-          <NeuralCore scrollProgress={scrollProgress} />
-          <DataMatrix scrollProgress={scrollProgress} />
           <HelixDNA scrollProgress={scrollProgress} />
           <ProjectOrb scrollProgress={scrollProgress} />
           <WormholeOrb scrollProgress={scrollProgress} />

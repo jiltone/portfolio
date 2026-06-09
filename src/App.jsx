@@ -73,7 +73,7 @@ function ScrollBar({ progressRef }) {
   }, [progressRef])
 
   return (
-    <div style={{
+    <div className="scroll-bar-ui" style={{
       position: 'fixed', left: '28px', top: '50%', transform: 'translateY(-50%)',
       zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
     }}>
@@ -140,7 +140,7 @@ function SectionIndicator() {
   }
 
   return (
-    <div style={{
+    <div className="section-indicator-ui" style={{
       position: 'fixed', right: '28px', top: '50%', transform: 'translateY(-50%)',
       zIndex: 90, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px',
     }}>

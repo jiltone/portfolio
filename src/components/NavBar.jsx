@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 
 const NAV_LINKS = [
-  { id: 'nav-about',      label: 'About',      href: '#about' },
-  { id: 'nav-experience', label: 'Experience', href: '#experience' },
-  { id: 'nav-projects',   label: 'Projects',   href: '#projects' },
-  { id: 'nav-contact',    label: 'Contact',    href: '#contact' },
+  { id: 'nav-about',      label: 'About',      href: '#about',      shortLabel: 'About' },
+  { id: 'nav-experience', label: 'Experience', href: '#experience', shortLabel: 'Exp' },
+  { id: 'nav-projects',   label: 'Projects',   href: '#projects',   shortLabel: 'Work' },
+  { id: 'nav-contact',    label: 'Contact',    href: '#contact',    shortLabel: 'Contact' },
 ]
 
 export default function NavBar() {
@@ -14,7 +14,10 @@ export default function NavBar() {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
-    gsap.from(navRef.current, { y: -60, opacity: 0, duration: 1.1, ease: 'power3.out', delay: 0.6 })
+    // Set explicit initial state first, then animate to known final state
+    // (avoids gsap.from() recording a stale "to" value that breaks scroll-up visibility)
+    gsap.set(navRef.current, { y: -80, opacity: 0 })
+    gsap.to(navRef.current,  { y: 0, opacity: 1, duration: 1.1, ease: 'power3.out', delay: 0.6 })
 
     const onScroll = () => {
       setScrolled(window.scrollY > 40)
@@ -51,24 +54,24 @@ export default function NavBar() {
       id="navbar"
       style={{
         position: 'fixed',
-        top: '20px',
+        top: '24px',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 100,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '32px',
-        padding: '10px 24px',
-        background: scrolled ? 'rgba(7, 7, 9, 0.88)' : 'rgba(7, 7, 9, 0.52)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        border: `1px solid ${scrolled ? 'rgba(0,255,204,0.1)' : 'rgba(255,255,255,0.07)'}`,
+        gap: '48px',
+        padding: '14px 36px',
+        background: scrolled ? 'rgba(7, 7, 9, 0.92)' : 'rgba(7, 7, 9, 0.60)',
+        backdropFilter: 'blur(28px)',
+        WebkitBackdropFilter: 'blur(28px)',
+        border: `1px solid ${scrolled ? 'rgba(0,255,204,0.14)' : 'rgba(255,255,255,0.09)'}`,
         borderRadius: '50px',
         transition: 'background 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease',
         boxShadow: scrolled
-          ? '0 8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,255,204,0.06)'
-          : 'none',
+          ? '0 10px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,255,204,0.08)'
+          : '0 4px 24px rgba(0,0,0,0.3)',
       }}
     >
       {/* Logo */}
@@ -79,8 +82,8 @@ export default function NavBar() {
         style={{
           fontFamily: 'var(--font-display)',
           fontWeight: 900,
-          fontSize: '1rem',
-          letterSpacing: '0.04em',
+          fontSize: '1.18rem',
+          letterSpacing: '0.05em',
           color: 'var(--accent)',
           textDecoration: 'none',
           whiteSpace: 'nowrap',
@@ -91,7 +94,7 @@ export default function NavBar() {
       </a>
 
       {/* Links */}
-      <div style={{ display: 'flex', gap: '2px' }}>
+      <div style={{ display: 'flex', gap: '4px' }}>
         {NAV_LINKS.map((link) => {
           const isActive = active === link.href.replace('#', '')
           return (
@@ -101,20 +104,21 @@ export default function NavBar() {
               href={link.href}
               onClick={(e) => handleNavClick(e, link.href)}
               style={{
-                padding: '6px 14px',
+                padding: '8px 20px',
                 borderRadius: '50px',
-                fontSize: '0.82rem',
+                fontSize: '0.93rem',
                 fontFamily: 'var(--font-display)',
                 fontWeight: isActive ? 700 : 500,
                 color: isActive ? '#000' : 'var(--text-muted)',
                 background: isActive ? 'var(--accent)' : 'transparent',
                 transition: 'all 0.28s ease',
                 textDecoration: 'none',
-                letterSpacing: '0.02em',
+                letterSpacing: '0.03em',
                 whiteSpace: 'nowrap',
               }}
             >
-              {link.label}
+              <span className="nav-label-full">{link.label}</span>
+              <span className="nav-label-short">{link.shortLabel}</span>
             </a>
           )
         })}

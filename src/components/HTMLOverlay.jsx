@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import dilshanImg from '../assets/dilshan.png'
+import aboutImg from '../assets/About.png'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -81,14 +83,201 @@ const EXPERIENCE = [
   },
 ]
 
+// ─── Fixed morph panel (hero → about image crossfade) ─────────────────────────
+
+function ImageMorphPanel() {
+  const panelRef = useRef()
+  const heroLayerRef = useRef()
+  const aboutLayerRef = useRef()
+  const tiltRef = useRef()
+
+  // Mouse-tracking 3-D tilt on hero image
+  useEffect(() => {
+    const el = tiltRef.current
+    let raf = null
+    const onMove = (e) => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        const x = (e.clientX / window.innerWidth - 0.5) * 2
+        const y = (e.clientY / window.innerHeight - 0.5) * 2
+        el.style.transform = `perspective(1000px) rotateY(${x * 10}deg) rotateX(${-y * 7}deg)`
+      })
+    }
+    const onLeave = () => {
+      cancelAnimationFrame(raf)
+      el.style.transform = 'perspective(1000px) rotateY(0deg) rotateX(0deg)'
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseleave', onLeave)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseleave', onLeave)
+      cancelAnimationFrame(raf)
+    }
+  }, [])
+
+  // Scroll-driven animations — all fromTo with explicit states for reliable scroll-up reversal
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      // Lock initial states (prevents GSAP "from" capture ambiguity)
+      gsap.set(heroLayerRef.current, { scale: 1, opacity: 1 })
+      gsap.set(aboutLayerRef.current, { scale: 0.85, opacity: 0, y: '4%' })
+
+      // ── Opening: panel zooms in on page load ──────────────────────────────────
+      gsap.fromTo(panelRef.current,
+        { scale: 0.72, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 1.4, delay: 0.3, ease: 'power3.out' }
+      )
+
+      // ── Hero image: zoom out + dissolve as hero section exits ─────────────────
+      gsap.fromTo(heroLayerRef.current,
+        { scale: 1, opacity: 1 },
+        {
+          scale: 0.78, opacity: 0,
+          ease: 'none', immediateRender: false,
+          scrollTrigger: {
+            trigger: '#hero',
+            start: 'bottom bottom', end: 'bottom top',
+            scrub: 1.3, invalidateOnRefresh: true,
+          },
+        }
+      )
+
+      // ── About image: enters as About section scrolls into view ────────────────
+      gsap.fromTo(aboutLayerRef.current,
+        { scale: 0.85, opacity: 0, y: '4%' },
+        {
+          scale: 1, opacity: 1, y: '0%',
+          ease: 'none', immediateRender: false,
+          scrollTrigger: {
+            trigger: '#about',
+            start: 'top 85%', end: 'top 25%',
+            scrub: 1.3, invalidateOnRefresh: true,
+          },
+        }
+      )
+
+      // ── About image: stays fully visible through all of Experience ────────────
+      //    (no animation needed — it holds scale:1 opacity:1 between the two triggers)
+
+      // ── About image: zoom out starts at Experience section middle ────────────
+      gsap.fromTo(aboutLayerRef.current,
+        { scale: 1, opacity: 1, y: '0%' },
+        {
+          scale: 0.78, opacity: 0, y: '4%',
+          ease: 'none', immediateRender: false,
+          scrollTrigger: {
+            trigger: '#experience',
+            start: 'center center', end: 'bottom top',
+            scrub: 1.3, invalidateOnRefresh: true,
+          },
+        }
+      )
+
+      // ── Panel: fades out in sync with about image ─────────────────────────────
+      gsap.fromTo(panelRef.current,
+        { opacity: 1, scale: 1 },
+        {
+          opacity: 0, pointerEvents: 'none',
+          ease: 'none', immediateRender: false,
+          scrollTrigger: {
+            trigger: '#experience',
+            start: 'center center', end: 'bottom top',
+            scrub: 1, invalidateOnRefresh: true,
+          },
+        }
+      )
+    })
+    return () => ctx.revert()
+  }, [])
+
+  return (
+    <div
+      id="image-morph-panel"
+      ref={panelRef}
+      style={{
+        position: 'fixed',
+        top: 0, right: 0,
+        width: '48%',
+        height: '100vh',
+        zIndex: 5,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+        opacity: 0,
+      }}
+    >
+      {/* Ambient glow */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 0,
+        background: `
+          radial-gradient(ellipse 65% 55% at 55% 60%, rgba(0,255,204,0.20) 0%, transparent 65%),
+          radial-gradient(ellipse 45% 40% at 75% 25%, rgba(168,85,247,0.16) 0%, transparent 60%)
+        `,
+        filter: 'blur(50px)',
+        pointerEvents: 'none',
+        animation: 'auraPulse 5s ease-in-out infinite',
+      }} />
+
+      {/* ── Hero image layer ── */}
+      <div
+        ref={heroLayerRef}
+        style={{ position: 'absolute', inset: 0, zIndex: 1, willChange: 'transform, opacity' }}
+      >
+        <div style={{ position: 'absolute', inset: 0, animation: 'heroFloat 6s ease-in-out infinite' }}>
+          <div
+            ref={tiltRef}
+            style={{ position: 'absolute', inset: 0, transition: 'transform 0.18s ease', willChange: 'transform' }}
+          >
+            <img
+              src={dilshanImg}
+              alt="Pannilage Dilshan"
+              style={{
+                width: '100%', height: '100%',
+                objectFit: 'cover', objectPosition: 'center top',
+                display: 'block',
+                filter: 'brightness(1.35) contrast(1.08) saturate(1.1)',
+              }}
+              draggable={false}
+            />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, var(--bg) 0%, rgba(7,7,9,0.6) 15%, transparent 38%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '32%', background: 'linear-gradient(to top, var(--bg) 0%, transparent 100%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '12%', background: 'linear-gradient(to bottom, var(--bg) 0%, transparent 100%)', pointerEvents: 'none' }} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── About image layer — starts invisible, crossfades in over hero ── */}
+      <img
+        ref={aboutLayerRef}
+        src={aboutImg}
+        alt="About"
+        style={{
+          position: 'absolute',
+          top: 0, left: '5%',
+          width: '90%', height: '100%',
+          objectFit: 'contain', objectPosition: 'center',
+          filter: 'brightness(1.3) contrast(1.05)',
+          mixBlendMode: 'screen',
+          opacity: 0,
+          zIndex: 2,
+          willChange: 'transform, opacity',
+        }}
+        draggable={false}
+      />
+    </div>
+  )
+}
+
 // ─── Hero Section ─────────────────────────────────────────────────────────────
 
 function HeroSection() {
+  const sectionRef = useRef()
   const titleRef = useRef()
-  const subRef   = useRef()
-  const ctaRef   = useRef()
+  const subRef = useRef()
+  const ctaRef = useRef()
   const badgeRef = useRef()
 
+  // Entry animation (text only — image is in the fixed ImageMorphPanel)
   useEffect(() => {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: 'power4.out' } })
@@ -105,87 +294,150 @@ function HeroSection() {
   }, [])
 
   return (
-    <section id="hero" className="section" style={{ minHeight: '100vh', paddingTop: '120px' }}>
-      <div ref={badgeRef} style={{ marginBottom: '36px' }}>
-        <span className="badge">
-          <span className="dot" />
-          Available for opportunities
-        </span>
-      </div>
+    <section
+      id="hero"
+      ref={sectionRef}
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'stretch',
+        overflow: 'hidden',
+      }}
+    >
+      {/* ── Left: text ── */}
+      <div
+        className="hero-text"
+        style={{
+          flex: '0 0 52%',
+          position: 'relative',
+          zIndex: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '120px 0 80px 8%',
+          paddingRight: '4%',
+        }}
+      >
+        <div ref={badgeRef} style={{ marginBottom: '36px' }}>
+          <span className="badge">
+            <span className="dot" />
+            Available for opportunities
+          </span>
+        </div>
 
-      <div ref={titleRef} style={{ overflow: 'hidden' }}>
-        <h1 className="display-xl" style={{ lineHeight: '0.88', marginBottom: '8px' }}>
-          {['Pannilage', 'Dilshan'].map((w, i) => (
-            <span key={i} className="word" style={{ display: 'block', overflow: 'hidden' }}>
-              <span style={{ display: 'block' }}>
-                {i === 1 ? (
-                  <span className="text-accent glow-text">{w}</span>
-                ) : w}
+        <div ref={titleRef} style={{ overflow: 'hidden' }}>
+          <h1 className="display-xl" style={{ lineHeight: '0.88', marginBottom: '8px' }}>
+            {['Pannilage', 'Dilshan'].map((w, i) => (
+              <span key={i} className="word" style={{ display: 'block', overflow: 'hidden' }}>
+                <span style={{ display: 'block' }}>
+                  {i === 1 ? (
+                    <span className="text-accent glow-text">{w}</span>
+                  ) : w}
+                </span>
               </span>
-            </span>
-          ))}
-        </h1>
-        <p className="display-md text-muted" style={{ marginTop: '16px', fontWeight: 300 }}>
-          AI Engineer &amp; Researcher
+            ))}
+          </h1>
+          <p className="display-md text-muted" style={{ marginTop: '16px', fontWeight: 300 }}>
+            AI Engineer &amp; Researcher
+          </p>
+        </div>
+
+        <div className="divider" style={{ margin: '28px 0' }} />
+
+        <p ref={subRef} style={{
+          maxWidth: '500px',
+          color: 'var(--text-muted)',
+          fontSize: '1.05rem',
+          lineHeight: 1.75,
+          marginBottom: '44px',
+        }}>
+          Building intelligent systems at the intersection of deep learning,
+          computer vision, and autonomous agents.&nbsp;
+          <span style={{ color: 'rgba(240,240,248,0.7)' }}>Faculty of Engineering,
+            University of Ruhuna.</span>
         </p>
+
+        <div ref={ctaRef} style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <a href="#projects" className="btn-primary" id="hero-cta-projects">
+            View Projects
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </a>
+          <a href="#contact" className="btn-outline" id="hero-cta-contact">
+            Get in Touch
+          </a>
+          <a
+            href="#"
+            className="btn-ghost"
+            id="hero-cta-resume"
+            download
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            Résumé
+          </a>
+        </div>
       </div>
 
-      <div className="divider" style={{ margin: '28px 0' }} />
+      {/* Right spacer — keeps 52/48 layout; actual image is in fixed ImageMorphPanel */}
+      <div className="hero-spacer" style={{ flex: '0 0 48%' }} />
 
-      <p ref={subRef} style={{
-        maxWidth: '500px',
-        color: 'var(--text-muted)',
-        fontSize: '1.05rem',
-        lineHeight: 1.75,
-        marginBottom: '44px',
-      }}>
-        Building intelligent systems at the intersection of deep learning,
-        computer vision, and autonomous agents.&nbsp;
-        <span style={{ color: 'rgba(240,240,248,0.7)' }}>Faculty of Engineering,
-        University of Ruhuna.</span>
-      </p>
-
-      <div ref={ctaRef} style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-        <a href="#projects" className="btn-primary" id="hero-cta-projects">
-          View Projects
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M5 12h14M12 5l7 7-7 7" />
-          </svg>
-        </a>
-        <a href="#contact" className="btn-outline" id="hero-cta-contact">
-          Get in Touch
-        </a>
-        <a
-          href="#"
-          className="btn-ghost"
-          id="hero-cta-resume"
-          download
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
-          </svg>
-          Résumé
-        </a>
+      {/* Mobile portrait — only visible when ImageMorphPanel is hidden (≤900px) */}
+      <div className="mobile-hero-img" style={{ position: 'relative', overflow: 'hidden' }}>
+        <img
+          src={dilshanImg}
+          alt="Pannilage Dilshan"
+          style={{
+            width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: 'center top',
+            filter: 'brightness(1.35) contrast(1.08) saturate(1.1)',
+            display: 'block',
+          }}
+          draggable={false}
+        />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg) 0%, rgba(7,7,9,0.45) 35%, transparent 65%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '28%', background: 'linear-gradient(to bottom, var(--bg) 0%, transparent 100%)', pointerEvents: 'none' }} />
       </div>
 
       {/* Scroll indicator */}
-      <div style={{
-        position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)',
+      <div className="hero-scroll-cue" style={{
+        position: 'absolute', bottom: '40px', left: '26%', transform: 'translateX(-50%)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
         animation: 'float-indicator 2s ease-in-out infinite',
+        zIndex: 10,
       }}>
         <span className="text-mono text-muted" style={{ fontSize: '0.65rem', letterSpacing: '0.2em' }}>SCROLL</span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
           <path d="M12 5v14M5 12l7 7 7-7" />
         </svg>
-        <style>{`
-          @keyframes float-indicator {
-            0%, 100% { transform: translateX(-50%) translateY(0); opacity: 1; }
-            50% { transform: translateX(-50%) translateY(8px); opacity: 0.4; }
-          }
-        `}</style>
       </div>
+
+      <style>{`
+        @keyframes photoEntry {
+          from { opacity: 0; transform: translateX(60px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes float-indicator {
+          0%, 100% { transform: translateY(0); opacity: 1; }
+          50%       { transform: translateY(8px); opacity: 0.4; }
+        }
+        @keyframes heroFloat {
+          0%, 100% { transform: translateY(0px); }
+          50%       { transform: translateY(-18px); }
+        }
+        @keyframes auraPulse {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.5; }
+        }
+        @media (max-width: 768px) {
+          #hero { flex-direction: column !important; }
+          #hero > div:last-child { display: none; }
+        }
+      `}</style>
     </section>
   )
 }
@@ -194,8 +446,8 @@ function HeroSection() {
 
 function AboutSection() {
   const sectionRef = useRef()
-  const textRef    = useRef()
-  const chipsRef   = useRef()
+  const textRef = useRef()
+  const chipsRef = useRef()
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -212,53 +464,78 @@ function AboutSection() {
   }, [])
 
   return (
-    <section id="about" ref={sectionRef} className="section" style={{ minHeight: '100vh' }}>
-      <div style={{ maxWidth: '660px' }}>
-        <div ref={textRef}>
-          <p className="text-mono text-accent reveal-item" style={{ marginBottom: '16px' }}>
-            001 — About Me
-          </p>
-          <h2 className="display-lg reveal-item" style={{ marginBottom: '24px' }}>
-            Engineering<br />
-            <span className="text-accent glow-text">Intelligence</span>
-          </h2>
-          <div className="divider reveal-item" />
-          <p style={{ color: 'var(--text-muted)', lineHeight: 1.85, margin: '24px 0', fontSize: '1.05rem' }} className="reveal-item">
-            I'm an AI Engineering student at the <strong style={{ color: 'var(--text-primary)' }}>
-            Faculty of Engineering, University of Ruhuna</strong>, passionate about building
-            systems that push the boundaries of machine intelligence.
-          </p>
-          <p style={{ color: 'var(--text-muted)', lineHeight: 1.85, marginBottom: '36px', fontSize: '1.05rem' }} className="reveal-item">
-            My research spans deep learning architectures, computer vision, and
-            autonomous multi-agent systems. I believe in building AI that is not
-            only powerful but explainable and ethical.
-          </p>
+    <section
+      id="about"
+      ref={sectionRef}
+      style={{ minHeight: '100vh', display: 'flex', alignItems: 'stretch', position: 'relative', overflow: 'hidden' }}
+    >
+      {/* ── Left: text content ── */}
+      <div className="section" style={{ flex: '0 0 55%', justifyContent: 'center' }}>
+        <div style={{ maxWidth: '600px' }}>
+          <div ref={textRef}>
+            <p className="text-mono text-accent reveal-item" style={{ marginBottom: '32px' }}>
+              001 — About Me
+            </p>
+            <h2 className="display-lg reveal-item" style={{ marginBottom: '48px' }}>
+              Engineering<br />
+              <span className="text-accent glow-text">Intelligence</span>
+            </h2>
+            <div className="divider reveal-item" />
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.85, margin: '48px 0', fontSize: '1.05rem' }} className="reveal-item">
+              I'm a undergraduate student specializing in Computer Engineering at the <strong style={{ color: 'var(--text-primary)' }}>
+                Faculty of Engineering, University of Ruhuna</strong>, passionate about building
+              systems that push the boundaries of machine intelligence.
+            </p>
+            <p style={{ color: 'var(--text-muted)', lineHeight: 1.85, marginBottom: '48px', fontSize: '1.05rem' }} className="reveal-item">
+              My research spans deep learning architectures, computer vision, and
+              autonomous multi-agent systems. I believe in building AI that is not
+              only powerful but explainable and ethical.
+            </p>
 
-          {/* Stat cards */}
-          <div className="reveal-item" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '40px' }}>
-            {[
-              { value: '15+', label: 'Projects Built' },
-              { value: '4+',  label: 'Years Coding' },
-              { value: 'AI/ML', label: 'Specialization' },
-            ].map((stat, i) => (
-              <div key={i} className="glass-card" style={{ padding: '20px 16px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '1.8rem', color: 'var(--accent)' }}>
-                  {stat.value}
+            <div className="reveal-item stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '40px' }}>
+              {[
+                { value: '15+', label: 'Projects Built' },
+                { value: '4+', label: 'Years Coding' },
+                { value: 'AI/ML', label: 'Specialization' },
+              ].map((stat, i) => (
+                <div key={i} className="glass-card" style={{ padding: '20px 16px', textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '1.8rem', color: 'var(--accent)' }}>
+                    {stat.value}
+                  </div>
+                  <div className="text-mono text-muted" style={{ fontSize: '0.68rem', marginTop: '4px' }}>
+                    {stat.label}
+                  </div>
                 </div>
-                <div className="text-mono text-muted" style={{ fontSize: '0.68rem', marginTop: '4px' }}>
-                  {stat.label}
-                </div>
-              </div>
+              ))}
+            </div>
+          </div>
+
+          <div ref={chipsRef} style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            {SKILLS.map((skill) => (
+              <span key={skill} className="chip">{skill}</span>
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Skills chips */}
-        <div ref={chipsRef} style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-          {SKILLS.map((skill) => (
-            <span key={skill} className="chip">{skill}</span>
-          ))}
-        </div>
+      {/* Right spacer — actual image is in fixed ImageMorphPanel */}
+      <div className="about-spacer" style={{ flex: '0 0 45%' }} />
+
+      {/* Mobile about image — only visible when ImageMorphPanel is hidden (≤900px) */}
+      <div className="mobile-about-img">
+        <img
+          src={aboutImg}
+          alt="About"
+          style={{
+            display: 'block',
+            width: '85%',
+            maxWidth: '320px',
+            margin: '0 auto',
+            filter: 'brightness(1.3) contrast(1.05)',
+            mixBlendMode: 'screen',
+          }}
+          draggable={false}
+        />
       </div>
     </section>
   )
@@ -351,7 +628,7 @@ function ExperienceItem({ item, index }) {
 
 function ExperienceSection() {
   const sectionRef = useRef()
-  const headRef    = useRef()
+  const headRef = useRef()
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -494,7 +771,7 @@ function ProjectCard({ project, index }) {
 
 function ProjectsSection() {
   const sectionRef = useRef()
-  const headRef    = useRef()
+  const headRef = useRef()
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -624,7 +901,7 @@ function ContactSection() {
           },
           {
             id: 'link-scholar', label: 'Scholar', href: '#',
-            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6L23 9l-11-6zm0 14.5L7 15.18V11.5l5 2.72 5-2.72v3.68L12 17.5zM12 12.5L3.18 8.55 12 4.6l8.82 3.95L12 12.5z"/></svg>,
+            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6L23 9l-11-6zm0 14.5L7 15.18V11.5l5 2.72 5-2.72v3.68L12 17.5zM12 12.5L3.18 8.55 12 4.6l8.82 3.95L12 12.5z" /></svg>,
           },
         ].map((link) => (
           <a
@@ -659,6 +936,7 @@ function ContactSection() {
 export default function HTMLOverlay() {
   return (
     <div id="content">
+      <ImageMorphPanel />
       <HeroSection />
       <AboutSection />
       <ExperienceSection />
