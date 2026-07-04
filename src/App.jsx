@@ -172,9 +172,20 @@ export default function App() {
   const { progress } = useScrollProgress()
 
   useEffect(() => {
-    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches
-    if (!isTouchDevice) document.body.style.cursor = 'none'
-    return () => { document.body.style.cursor = '' }
+    const coarsePointer = window.matchMedia('(pointer: coarse)')
+    const narrowViewport = window.matchMedia('(max-width: 768px)')
+    const updateCursor = () => {
+      const showNativeCursor = coarsePointer.matches || narrowViewport.matches
+      document.body.style.cursor = showNativeCursor ? '' : 'none'
+    }
+    updateCursor()
+    coarsePointer.addEventListener('change', updateCursor)
+    narrowViewport.addEventListener('change', updateCursor)
+    return () => {
+      coarsePointer.removeEventListener('change', updateCursor)
+      narrowViewport.removeEventListener('change', updateCursor)
+      document.body.style.cursor = ''
+    }
   }, [])
 
   return (
